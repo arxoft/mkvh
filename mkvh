@@ -1,0 +1,48 @@
+#!/bin/bash
+set -e
+clear
+bold=$(tput bold)
+normal=$(tput sgr0)
+read -p "Enter the hostname for the new virtual host: " N
+read -p "Enter the document root (path): " P
+mkdir -p $P
+if test -f "/etc/apache2/sites-available/$N.conf"; then
+  echo 
+  echo "Virtual host $N already exists."
+  read -p "Replace? (Y/n) " -n 1 -r
+  echo  
+  if [[ $REPLY =~ ^[Yy]$ ]]
+  then
+    echo
+    echo "OK. Disabling $N"
+    echo "Restarting Apache..."
+    sudo a2dissite $N.conf
+    sudo rm /etc/apache2/sites-available/$N.conf
+    sudo service apache2 restart
+  else
+    echo 
+    echo "OK. See ya!"
+    exit
+  fi
+fi
+
+echo 
+sudo a2enmod headers
+sudo cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/$N.conf
+# TODO Inject `Header set Access-Control-Allow-Origin "*"` under the ServerName directive
+sudo sed -i -e "s|#ServerName www.example.com|ServerName $N|g" /etc/apache2/sites-available/$N.conf
+sudo sed -i -e "s|DocumentRoot /var/www/html|DocumentRoot $P|g" /etc/apache2/sites-available/$N.conf
+sudo sed -i -e "s|[$][{]APACHE_LOG_DIR[}]|$P|g" /etc/apache2/sites-available/$N.conf
+echo "Created $bold$N$normal at $bold/etc/apache2/sites-available/$N.conf$normal" 
+
+echo 
+echo "Adding hostname into $bold/etc/hosts$normal"
+sudo a2ensite $N
+sudo service apache2 restart
+sudo sed -i -e "s|127.0.0.1|127.0.0.1	$N |g" /etc/hosts 
+# cat /etc/hosts
+sudo service apache2 restart
+
+echo
+echo "Apache restarted."
+echo "All done. Exiting."
