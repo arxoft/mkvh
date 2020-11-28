@@ -1,9 +1,9 @@
 # mkvh
-A humble bash script to help create Apache Virtual Host on an Ubuntu based OS. Usage, run `./mkvh` and follow. 
+A humble bash script to help create Apache Virtual Host on an Ubuntu based OS.  
 
 **Usage:**
 
-mkvh can be used in any of the following ways.
+`mkvh` can be used in any of the following ways.
 
 ```
 ./mkvh
