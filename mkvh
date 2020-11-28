@@ -3,8 +3,23 @@ set -e
 clear
 bold=$(tput bold)
 normal=$(tput sgr0)
-read -p "Enter the hostname for the new virtual host: " N
-read -p "Enter the document root (path): " P
+N=$1
+P=$2
+
+if [ -z "$N" ]
+then
+  read -p "Enter the hostname for the new virtual host: " N
+fi
+
+if [ -z "$P" ]
+then 
+  read -p "Enter the document root (`pwd`): " P
+  if [ -z "$P" ]
+  then 
+    P=`pwd`
+  fi
+fi 
+
 mkdir -p $P
 if test -f "/etc/apache2/sites-available/$N.conf"; then
   echo 
@@ -34,13 +49,12 @@ sudo sed -i -e "s|#ServerName www.example.com|ServerName $N|g" /etc/apache2/site
 sudo sed -i -e "s|DocumentRoot /var/www/html|DocumentRoot $P|g" /etc/apache2/sites-available/$N.conf
 sudo sed -i -e "s|[$][{]APACHE_LOG_DIR[}]|$P|g" /etc/apache2/sites-available/$N.conf
 echo "Created $bold$N$normal at $bold/etc/apache2/sites-available/$N.conf$normal" 
+sudo a2ensite $N
 
 echo 
 echo "Adding hostname into $bold/etc/hosts$normal"
-sudo a2ensite $N
-sudo service apache2 restart
-sudo sed -i -e "s|127.0.0.1|127.0.0.1	$N |g" /etc/hosts 
-# cat /etc/hosts
+sudo sed -i -e "s|\b$N\b||g" /etc/hosts
+sudo sed -i -e "s|127.0.0.1|127.0.0.1 $N |g" /etc/hosts 
 sudo service apache2 restart
 
 echo
