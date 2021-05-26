@@ -1,0 +1,29 @@
+ 
+{
+  "name": "mkvh",
+  "version": "1.0.0",
+  "description": "mkvh - Make Virtual Hosts (Ubuntu/Apache only)",
+  "main": "index.js",
+  "scripts": {
+    "test": "gid test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arxoft/gitdistrict.git"
+  },
+  "bin": {
+    "mkvh": "./mkvh"
+  },
+  "keywords": [
+    "apache",
+    "ubuntu",
+    "mint",
+    "linux"
+  ],
+  "author": "Arxoft",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/arxoft/mkvh/issues"
+  },
+  "homepage": "https://github.com/arxoft/mkvh#readme"
+}
