@@ -20,9 +20,22 @@ then
   fi
 fi 
 
+SSL=0
+CONF="$N.conf"
+
+read -p "Setup a local SSL? (y/n) " -n 1 -r
+if [[ $REPLY =~ ^[Yy]$ ]]
+then
+  CONF="$N-ssl.conf" 
+  SSL=1
+fi 
+
+CONFPATH="/etc/apache2/sites-available/$CONF" 
+
 mkdir -p $P
-if test -f "/etc/apache2/sites-available/$N.conf"; then
+if test -f "$CONFPATH"; then
   echo 
+  echo
   echo "Virtual host $N already exists."
   read -p "Replace? (Y/n) " -n 1 -r
   echo  
@@ -31,8 +44,8 @@ if test -f "/etc/apache2/sites-available/$N.conf"; then
     echo
     echo "OK. Disabling $N"
     echo "Restarting Apache..."
-    sudo a2dissite $N.conf
-    sudo rm /etc/apache2/sites-available/$N.conf
+    sudo a2dissite $CONF
+    sudo rm $CONFPATH
     sudo service apache2 restart
   else
     echo 
@@ -43,20 +56,49 @@ fi
 
 echo 
 sudo a2enmod headers
-sudo cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/$N.conf
-# TODO Inject `Header set Access-Control-Allow-Origin "*"` under the ServerName directive
-sudo sed -i -e "s|#ServerName www.example.com|ServerName $N|g" /etc/apache2/sites-available/$N.conf
-sudo sed -i -e "s|DocumentRoot /var/www/html|DocumentRoot $P|g" /etc/apache2/sites-available/$N.conf
-sudo sed -i -e "s|[$][{]APACHE_LOG_DIR[}]|$P|g" /etc/apache2/sites-available/$N.conf
-echo "Created $bold$N$normal at $bold/etc/apache2/sites-available/$N.conf$normal" 
-sudo a2ensite $N
+
+if (( $SSL == 1 )); then
+
+  sudo mkdir -p /etc/apache2/ssl
+
+  echo 
+  echo 
+  echo "Enabling SSL Mod..."
+  sudo a2enmod ssl
+
+  echo 
+  echo 
+  echo "Generating certificate..."
+  sleep 5
+  sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/apache2/ssl/$N.key -out /etc/apache2/ssl/$N.crt
+
+  sudo cp /etc/apache2/sites-available/default-ssl.conf /etc/apache2/sites-available/$CONF
+  sudo sed -i -e "s|DocumentRoot /var/www/html|&\t\tServerAlias www.$N|g" /etc/apache2/sites-available/$CONF
+  sudo sed -i -e "s|DocumentRoot /var/www/html|&\n\t\tServerName $N\n|g" /etc/apache2/sites-available/$CONF
+  sudo sed -i -e "s|/etc/ssl/certs/ssl-cert-snakeoil.pem|/etc/apache2/ssl/$N.crt|g" /etc/apache2/sites-available/$CONF
+  sudo sed -i -e "s|/etc/ssl/private/ssl-cert-snakeoil.key|/etc/apache2/ssl/$N.key|g" /etc/apache2/sites-available/$CONF
+
+else
+  sudo cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/$CONF
+  sudo sed -i -e "s|#ServerName www.example.com|ServerName $N|g" /etc/apache2/sites-available/$CONF
+fi 
+
+sudo sed -i -e "s|DocumentRoot /var/www/html|&\n\t\tHeader set Access-Control-Allow-Origin \"*\"|g" /etc/apache2/sites-available/$CONF
+sudo sed -i -e "s|DocumentRoot /var/www/html|DocumentRoot $P|g" /etc/apache2/sites-available/$CONF
+sudo sed -i -e "s|[$][{]APACHE_LOG_DIR[}]|$P|g" /etc/apache2/sites-available/$CONF
+
+echo
+echo "Created $bold$N$normal at $bold/etc/apache2/sites-available/$CONF$normal" 
+
+sudo a2ensite $CONF
 
 echo 
 echo "Adding hostname into $bold/etc/hosts$normal"
-sudo sed -i -e "s|\b$N\b||g" /etc/hosts
-sudo sed -i -e "s|127.0.0.1|127.0.0.1 $N |g" /etc/hosts 
+sudo sed -i -e "s|\b127.0.0.1 $N\b||g" /etc/hosts
+echo "127.0.0.1 $N" | sudo tee -a /etc/hosts
 sudo service apache2 restart
 
 echo
 echo "Apache restarted."
-echo "All done. Exiting."
+echo "All done."
+echo "Bye."
